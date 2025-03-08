@@ -484,6 +484,10 @@ type MainMenu struct {
 		ToggleCompactDisplay theme.MenuItem
 		ToggleTimelineLabels theme.MenuItem
 		ToggleStackTracks    theme.MenuItem
+
+		// Kaiju Engine
+		PrevTimelineUserRegion theme.MenuItem
+		NextTimelineUserRegion theme.MenuItem
 	}
 
 	Analyze struct {
@@ -517,6 +521,7 @@ func NewMainMenu(mwin *MainWindow, win *theme.Window) *MainMenu {
 	m.Display.ToggleCompactDisplay = theme.MenuItem{Shortcut: "C", Label: ToggleLabel("Disable compact display", "Enable compact display", &mwin.canvas.timeline.compact), Disabled: notMainDisabled}
 	m.Display.ToggleTimelineLabels = theme.MenuItem{Shortcut: "X", Label: ToggleLabel("Hide timeline labels", "Show timeline labels", &mwin.canvas.timeline.displayAllLabels), Disabled: notMainDisabled}
 	m.Display.ToggleStackTracks = theme.MenuItem{Shortcut: "S", Label: ToggleLabel("Hide stack frames", "Show stack frames", &mwin.canvas.timeline.displayStackTracks), Disabled: notMainDisabled}
+	kaijuNewMainMenu(m, notMainDisabled)
 
 	m.Debug.Memprofile = theme.MenuItem{Label: PlainLabel("Write memory profile")}
 	m.Debug.Cpuprofile = theme.MenuItem{Label: func() string {
@@ -565,6 +570,8 @@ func NewMainMenu(mwin *MainWindow, win *theme.Window) *MainMenu {
 					theme.NewMenuItemStyle(win.Theme, &m.Display.ToggleStackTracks).Layout,
 					// TODO(dh): add items for STW and GC overlays
 					// TODO(dh): add item for tooltip display
+					theme.NewMenuItemStyle(win.Theme, &m.Display.PrevTimelineUserRegion).Layout,
+					theme.NewMenuItemStyle(win.Theme, &m.Display.NextTimelineUserRegion).Layout,
 				},
 			},
 			{
@@ -780,6 +787,7 @@ func (mwin *MainWindow) Run() error {
 					win.Menu.Close()
 					mwin.showFileOpenDialog()
 				}
+				kaijuWinUpdate(mwin, win, gtx)
 
 				for _, ev := range gtx.Events(profileTag) {
 					// Yup, profile.Event only contains a string. No structured access to data.
@@ -958,6 +966,7 @@ func (mwin *MainWindow) renderLoadingTraceScene(win *theme.Window, gtx layout.Co
 func (mwin *MainWindow) renderMainScene(win *theme.Window, gtx layout.Context, shortcuts []theme.Shortcut) layout.Dimensions {
 	win.AddShortcut(theme.Shortcut{Name: "G"})
 	win.AddShortcut(theme.Shortcut{Name: "H"})
+	kaijuRenderMainScene(win)
 
 	for _, s := range shortcuts {
 		switch s {
@@ -968,6 +977,12 @@ func (mwin *MainWindow) renderMainScene(win *theme.Window, gtx layout.Context, s
 
 		case theme.Shortcut{Name: "H"}:
 			displayHighlightSpansDialog(win, &mwin.canvas.timeline.filter)
+
+		case theme.Shortcut{Name: "P"}:
+			mwin.canvas.ScrollToPreviousUserRegion(gtx)
+
+		case theme.Shortcut{Name: "N"}:
+			mwin.canvas.ScrollToNextUserRegion(gtx)
 		}
 	}
 
